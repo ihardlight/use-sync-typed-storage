@@ -3,11 +3,13 @@ import {CLEAR_STORAGE_EVENT, getCustomEventName} from './utils.js';
 
 export function createTypedStorage<S extends TypedStorageValue>(
     type: StorageType = "localStorage",
+    options?: { validate?: <K extends keyof S>(key: K) => StorageValidator<S[K]> },
 ): TypedStorage<S> {
     type Keys = Extract<keyof S, string>;
     type Value<K extends Keys> = S[K];
     const isClient = typeof window !== "undefined";
     const cache = new Map<string, { raw: string | null; parsed: any }>();
+    const storageOptions = options || {};
 
     const getStorage = (): Storage | null => {
         if (!isClient) return null;
@@ -20,7 +22,10 @@ export function createTypedStorage<S extends TypedStorageValue>(
     return {
         get<K extends Keys>(
             key: K,
-            options?: { defaultValue?: Value<K>; validate?: StorageValidator<S[K]>; },
+            options: {
+                defaultValue?: Value<K>;
+                validate?: StorageValidator<S[K]> | undefined;
+            } = { validate: storageOptions.validate?.(key) },
         ): Value<K> | null {
             const storage = getStorage();
             if (!storage) return options?.defaultValue ?? null;
@@ -47,7 +52,10 @@ export function createTypedStorage<S extends TypedStorageValue>(
             }
         },
 
-        set<K extends Keys>(key: K, value: Value<K>, options?: { validate?: StorageValidator<S[K]> }): Value<K> | null {
+        set<K extends Keys>(
+            key: K, value: Value<K>,
+            options: { validate?: StorageValidator<S[K]> | undefined;
+        } = { validate: storageOptions.validate?.(key) }): Value<K> | null {
             const storage = getStorage();
             if (!storage) return null;
 

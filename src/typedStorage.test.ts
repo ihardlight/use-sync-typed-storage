@@ -106,6 +106,25 @@ describe('createTypedStorage', () => {
             const result = storage.get('settings', {validate});
             expect(result).toEqual({theme: 'light'});
         });
+
+        it('should validate data with global validator', () => {
+            const storage = createTypedStorage<TestSchema>('localStorage', {
+                validate: (key) => (val: any) => {
+                    if (key === 'count' && val < 0) throw new Error('Negative');
+                    return val;
+                },
+            });
+
+            const result = storage.set('count', 5);
+            expect(result).toBe(5);
+
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+            });
+            const invalidResult = storage.set('count', -1);
+
+            expect(invalidResult).toBeNull();
+            expect(consoleSpy).toHaveBeenCalled();
+        });
     });
 
     describe('Events', () => {
