@@ -1,36 +1,65 @@
-"use client";
+'use client';
 
 import {useCallback, useMemo} from 'react';
 import {useSyncExternalStore} from 'use-sync-external-store/shim';
 
-import {StorageValidator, TypedStorage, TypedStorageValue} from './types.js';
+import {GetOptions, GetOptionsWithDefault, StorageKey, TypedStorage, TypedStorageValue} from './types.js';
 import {CLEAR_STORAGE_EVENT, getCustomEventName, noop} from './utils.js';
 
-export function useTypedStorageItem<S extends TypedStorageValue, K extends Extract<keyof S, string>>(
+interface UseTypedStorageItemOptions<S extends TypedStorageValue, K extends StorageKey<S>> {
+    storage: TypedStorage<S>;
+    validate?: GetOptions<S[K]>['validate'];
+}
+
+interface UseTypedStorageItemOptionsWithDefault<S extends TypedStorageValue, K extends StorageKey<S>>
+    extends UseTypedStorageItemOptions<S, K> {
+    defaultValue: S[K];
+}
+
+interface UseTypedStorageItemResult<T> {
+    value: T;
+    set: (val: T) => T | null;
+    remove: () => void;
+}
+
+export function useTypedStorageItem<S extends TypedStorageValue, K extends StorageKey<S>>(
     key: K,
-    {
-        storage,
-        defaultValue,
-        validate,
-    }: { storage: TypedStorage<S>; defaultValue?: S[K] | undefined; validate?: StorageValidator<S[K]>; },
+    options: UseTypedStorageItemOptions<S, K>,
+): UseTypedStorageItemResult<S[K] | null>;
+
+export function useTypedStorageItem<S extends TypedStorageValue, K extends StorageKey<S>>(
+    key: K,
+    options: UseTypedStorageItemOptionsWithDefault<S, K>,
+): UseTypedStorageItemResult<S[K]>;
+
+export function useTypedStorageItem<S extends TypedStorageValue, K extends StorageKey<S>>(
+    key: K,
+    options: UseTypedStorageItemOptions<S, K> | UseTypedStorageItemOptionsWithDefault<S, K>,
 ) {
-    const isClient = typeof window !== "undefined";
+    const {storage, validate} = options;
+    const defaultValue = (options as UseTypedStorageItemOptionsWithDefault<S, K>).defaultValue;
+
+    const isClient = typeof window !== 'undefined';
     const customEventName = getCustomEventName(key);
 
     const subscribe = useCallback(
         (callback: () => void) => {
-            if (!isClient) return noop;
+            if (!isClient) {
+                return noop;
+            }
 
-            const storageHandler = (e: StorageEvent) => {
-                if (e.key === key || e.key === null) callback();
+            const handleStorageEvent = (event: StorageEvent): void => {
+                if (event.key === key || event.key === null) {
+                    callback();
+                }
             };
 
-            window.addEventListener("storage", storageHandler);
+            window.addEventListener('storage', handleStorageEvent);
             window.addEventListener(customEventName, callback);
             window.addEventListener(CLEAR_STORAGE_EVENT, callback);
 
             return () => {
-                window.removeEventListener("storage", storageHandler);
+                window.removeEventListener('storage', handleStorageEvent);
                 window.removeEventListener(customEventName, callback);
                 window.removeEventListener(CLEAR_STORAGE_EVENT, callback);
             };
@@ -38,20 +67,30 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Extra
         [key, customEventName, isClient],
     );
 
-    const getSnapshot = useCallback(() => storage?.get(key, { defaultValue, validate }) ?? null, [key, storage, defaultValue, validate]);
+    const getSnapshot = useCallback((): S[K] | null => {
+        const getOptions = defaultValue !== undefined
+            ? ({defaultValue, validate} as GetOptionsWithDefault<S[K]>)
+            : ({validate} as GetOptions<S[K]>);
 
-    const value = useSyncExternalStore(
-        subscribe,
-        getSnapshot,
-        () => defaultValue ?? null,
-    );
+        return storage.get(key, getOptions);
+    }, [key, storage, defaultValue, validate]);
+
+    const getServerSnapshot = useCallback((): S[K] | null => {
+        return defaultValue ?? null;
+    }, [defaultValue]);
+
+    const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
     const set = useCallback(
-        (val: S[K]) => storage.set(key, val, { validate}),
-        [key, storage, customEventName],
+        (val: S[K]): S[K] | null => {
+            return storage.set(key, val, {validate});
+        },
+        [key, storage, validate],
     );
 
-    const remove = useCallback(() => storage?.remove(key), [key, storage, customEventName]);
+    const remove = useCallback((): void => {
+        storage.remove(key);
+    }, [key, storage]);
 
-    return useMemo(() => ({ value, set, remove }), [value, set, remove]);
+    return useMemo(() => ({value, set, remove}), [value, set, remove]);
 }

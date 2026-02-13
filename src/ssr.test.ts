@@ -1,8 +1,8 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect } from 'vitest';
-import { createTypedStorage } from './typedStorage.js';
+import {describe, expect, it} from 'vitest';
+import {createTypedStorage} from './typedStorage.js';
 
 describe('SSR Compatibility (Node Environment)', () => {
     it('should not throw when window is undefined', () => {
@@ -11,7 +11,7 @@ describe('SSR Compatibility (Node Environment)', () => {
 
     it('should return defaultValue during SSR', () => {
         const storage = createTypedStorage<{ count: number }>();
-        const val = storage.get('count', { defaultValue: 10 });
+        const val = storage.get('count', {defaultValue: 10});
 
         expect(val).toBe(10);
     });

@@ -1,18 +1,41 @@
-export type StorageType = "localStorage" | "sessionStorage";
+export type StorageType = 'localStorage' | 'sessionStorage';
 
 export type TypedStorageValue = Record<string, unknown>;
+
 export type StorageValidator<T> = (value: unknown) => T;
 
-export type TypedStorage<S extends TypedStorageValue> = {
-    get<K extends Extract<keyof S, string>>(
+export type StorageKey<S extends TypedStorageValue> = Extract<keyof S, string>;
+
+export interface GetOptions<T> {
+    validate?: StorageValidator<T>;
+}
+
+export interface GetOptionsWithDefault<T> extends GetOptions<T> {
+    defaultValue: T;
+}
+
+export interface SetOptions<T> {
+    validate?: StorageValidator<T> | undefined;
+}
+
+export interface TypedStorage<S extends TypedStorageValue> {
+    get<K extends StorageKey<S>>(
         key: K,
-        options?: { defaultValue?: S[K] | undefined; validate?: StorageValidator<S[K]> | undefined; },
+        options?: GetOptions<S[K]>,
     ): S[K] | null;
-    set<K extends Extract<keyof S, string>>(
+
+    get<K extends StorageKey<S>>(
+        key: K,
+        options: GetOptionsWithDefault<S[K]>,
+    ): S[K];
+
+    set<K extends StorageKey<S>>(
         key: K,
         value: S[K],
-        options?: { validate?: StorageValidator<S[K]> | undefined },
+        options?: SetOptions<S[K]>,
     ): S[K] | null;
-    remove(key: Extract<keyof S, string>): void;
+
+    remove(key: StorageKey<S>): void;
+
     clear(): void;
-};
+}
