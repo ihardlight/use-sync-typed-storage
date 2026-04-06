@@ -1,7 +1,6 @@
 .github/
 .idea/
 vitest.config.ts
-tsconfig.test.json
 *.test.ts
 *.spec.ts
 setupTests.ts

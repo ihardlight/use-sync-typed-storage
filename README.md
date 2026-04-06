@@ -17,9 +17,10 @@ Managing `localStorage` in React often leads to inconsistent UI state, missing t
 - ✅ **Schema Validation**: Optional validation layer (works perfectly with Zod, Valibot, etc.).
 - 🚀 **Performance Optimized**: Internal caching prevents unnecessary JSON parsing and re-renders.
 - 🌍 **SSR Ready**: Safe for Next.js, Remix, and other server-side rendering environments.
-- 📦 **Zero Dependencies**: Core logic is dependency-free (only peer-depends on React).
+- 📦 **Zero Dependencies**: No runtime dependencies. Requires React 18+ or `use-sync-external-store` for React 16/17.
 
 ## Installation
+
 ```bash
 pnpm add use-sync-typed-storage
 # or
@@ -27,88 +28,122 @@ npm install use-sync-typed-storage
 # or
 yarn add use-sync-typed-storage
 ```
+
 ## Quick Start
 
 ### 1. Define your storage schema
 
-Create a central storage instance. This acts as your "Single Source of Truth".
+Create a central storage file once. `createTypedStorage` is a singleton — calling it twice for the same storage type returns the same instance and logs a warning in development.
+
 ```typescript
 // storage.ts
 import { createTypedStorage } from 'use-sync-typed-storage';
 
 type MyStorageSchema = {
-    theme: 'light' | 'dark';
-    notifications: boolean;
-    user: { id: number; name: string } | null;
-}
+  theme: 'light' | 'dark';
+  notifications: boolean;
+  user: { id: number; name: string } | null;
+};
 
-export const myStorage = createTypedStorage<MyStorageSchema>('localStorage');
+export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('localStorage');
 ```
+
 ### 2. Use in components
+
 ```tsx
-import { useTypedStorageItem } from 'use-sync-typed-storage';
-import { myStorage } from './storage';
+import { useStorageItem } from './storage';
 
 function ThemeToggle() {
-    const { value, set } = useTypedStorageItem('theme', {
-        storage: myStorage,
-        defaultValue: 'light'
-    });
-    
-    return (
-        <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>
-            Current mode: {value}
-        </button>
-    );
+  const { value, set } = useStorageItem('theme', { defaultValue: 'light' });
+
+  return <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>Current mode: {value}</button>;
 }
 ```
-**NB: Always create your storage instance outside of React components or memoize it**
 
 ## Advanced Features
 
 ### Runtime Validation (e.g., with Zod)
 
 Protect your app from corrupted or manually edited data in `localStorage`.
+
 ```typescript
 import { z } from 'zod';
+import { useStorageItem } from './storage';
 
-const UserSchema = z.object({
-    id: z.number(),
-    name: z.string()
-});
+const UserSchema = z.object({ id: z.number(), name: z.string() });
 
-const { value } = useTypedStorageItem('user', {
-    storage: myStorage,
-    validate: (data) => UserSchema.parse(data), // Throws or returns sanitized data
-    defaultValue: null
+const { value } = useStorageItem('user', {
+  validate: (data) => UserSchema.parse(data),
+  defaultValue: null,
 });
 ```
+
+### Global Validator (per-key, at storage creation)
+
+You can define validators for all keys centrally at creation time:
+
+```typescript
+export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('localStorage', {
+  validate: (key) => (value) => {
+    if (key === 'theme' && value !== 'light' && value !== 'dark') return 'light';
+    return value;
+  },
+});
+```
+
 ### Direct Storage Access (Outside React)
 
 You can read or write to storage anywhere in your app. All active hooks will automatically update their state.
-```typescript
-// In some API utility or event handler
-myStorage.set('notifications', true);
 
-// Clear all data managed by this instance
-myStorage.clear();
+```typescript
+import { storage } from './storage';
+
+// In some API utility or event handler
+storage.set('notifications', true);
+
+// Clear all data
+storage.clear();
 ```
+
 ### Server-Side Rendering (SSR)
 
 The library is SSR-safe. On the server, it will always return the `defaultValue` (or `null`) and will synchronize with the actual browser storage immediately after hydration.
 
 ## API Reference
 
-### `createTypedStorage<T>(type: 'localStorage' | 'sessionStorage')`
-Creates a typed storage instance.
-- `get(key, options)`
-- `set(key, value, options)`
-- `remove(key)`
-- `clear()`
+### `createTypedStorage<T>(type?, options?)`
 
-### `useTypedStorageItem(key, options)`
+Returns `{ storage, useStorageItem }`. Singleton per storage type — calling it twice for the same `type` returns the existing instance with a dev warning.
+
+- `type`: `'localStorage'` (default) or `'sessionStorage'`
+- `options.validate`: `(key) => (value) => T` — global per-key validator
+
+#### `storage`
+
+Direct access to storage, usable outside React components:
+
+- `storage.get(key, options?)`
+- `storage.set(key, value, options?)`
+- `storage.remove(key)`
+- `storage.clear()`
+
+#### `useStorageItem(key, options?)`
+
 React hook to subscribe to a specific key.
-- `options.storage`: The instance created by `createTypedStorage`.
-- `options.defaultValue`: Initial value if key is empty.
-- `options.validate`: Optional function to validate/transform data.
 
+- `options.defaultValue`: Value returned when the key is absent.
+- `options.validate`: Per-call validator/transformer function.
+
+Returns `{ value, set, remove }`.
+
+### `resetTypedStorageRegistry()`
+
+Clears the singleton registry. Intended for use in tests only.
+
+```typescript
+import { resetTypedStorageRegistry } from 'use-sync-typed-storage';
+
+beforeEach(() => {
+  resetTypedStorageRegistry();
+});
+```

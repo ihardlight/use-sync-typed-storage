@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "exclude": ["dist", "node_modules", "**/*.test.*", "**/*.spec.*", "**/__tests__/**", "src/setupTests.ts"]
+}
