@@ -42,10 +42,13 @@
     },
     "peerDependencies": {
         "react": ">=16.8",
-        "react-dom": ">=16.8"
+        "react-dom": ">=16.8",
+        "use-sync-external-store": "^1.0.0"
     },
-    "dependencies": {
-        "use-sync-external-store": "^1.6.0"
+    "peerDependenciesMeta": {
+        "use-sync-external-store": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@testing-library/react": "^16.3.2",

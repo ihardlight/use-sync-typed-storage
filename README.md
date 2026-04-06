@@ -17,15 +17,22 @@ Managing `localStorage` in React often leads to inconsistent UI state, missing t
 - ✅ **Schema Validation**: Optional validation layer (works perfectly with Zod, Valibot, etc.).
 - 🚀 **Performance Optimized**: Internal caching prevents unnecessary JSON parsing and re-renders.
 - 🌍 **SSR Ready**: Safe for Next.js, Remix, and other server-side rendering environments.
-- 📦 **Zero Dependencies**: Core logic is dependency-free (only peer-depends on React).
+- 📦 **Zero Dependencies**: No runtime dependencies. Requires React 18+ or `use-sync-external-store` for React 16/17.
 
 ## Installation
+
 ```bash
 pnpm add use-sync-typed-storage
 # or
 npm install use-sync-typed-storage
 # or
 yarn add use-sync-typed-storage
+```
+
+**React 16 / 17 only:** `useSyncExternalStore` is built into React 18+. If you are on an older version, install the official shim as well:
+
+```bash
+pnpm add use-sync-external-store
 ```
 ## Quick Start
 
