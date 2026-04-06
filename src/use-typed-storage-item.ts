@@ -1,9 +1,7 @@
-'use client';
-
 import {useCallback, useMemo} from 'react';
 import {useSyncExternalStore} from 'use-sync-external-store/shim';
 
-import {GetOptions, GetOptionsWithDefault, StorageKey, TypedStorage, TypedStorageValue} from './types.js';
+import {GetOptions, GetOptionsWithDefault, StorageKey, StorageValidator, TypedStorage, TypedStorageValue} from './types.js';
 import {CLEAR_STORAGE_EVENT, getCustomEventName, noop} from './utils.js';
 
 interface UseTypedStorageItemOptions<S extends TypedStorageValue, K extends StorageKey<S>> {
@@ -16,7 +14,7 @@ interface UseTypedStorageItemOptionsWithDefault<S extends TypedStorageValue, K e
     defaultValue: S[K];
 }
 
-interface UseTypedStorageItemResult<T> {
+export interface UseTypedStorageItemResult<T> {
     value: T;
     set: (val: T) => T | null;
     remove: () => void;
@@ -93,4 +91,17 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
     }, [key, storage]);
 
     return useMemo(() => ({value, set, remove}), [value, set, remove]);
+}
+
+export type StorageItemResult<T, D extends T | undefined> = D extends T
+    ? UseTypedStorageItemResult<T>
+    : UseTypedStorageItemResult<T | null>;
+
+export function createStorageHook<S extends TypedStorageValue>(storage: TypedStorage<S>) {
+    return function useStorageItem<K extends StorageKey<S>, D extends S[K] | undefined = undefined>(
+        key: K,
+        options?: { defaultValue?: D; validate?: StorageValidator<S[K]> },
+    ): StorageItemResult<S[K], D> {
+        return useTypedStorageItem(key, { ...options, storage }) as StorageItemResult<S[K], D>;
+    };
 }

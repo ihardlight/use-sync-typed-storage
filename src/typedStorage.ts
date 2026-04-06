@@ -9,20 +9,33 @@ import {
     TypedStorageValue,
 } from './types.js';
 import {CLEAR_STORAGE_EVENT, getCustomEventName} from './utils.js';
+import {createStorageHook} from './use-typed-storage-item.js';
 
 interface CacheEntry<T> {
     raw: string | null;
     parsed: T;
 }
 
-interface StorageOptions<S extends TypedStorageValue> {
+export interface CreateTypedStorageOptions<S extends TypedStorageValue> {
     validate?: <K extends keyof S>(key: K) => StorageValidator<S[K]>;
+}
+
+const registry = new Map<string, unknown>();
+
+export function resetTypedStorageRegistry(): void {
+    registry.clear();
 }
 
 export function createTypedStorage<S extends TypedStorageValue>(
     type: StorageType = 'localStorage',
-    options?: StorageOptions<S>,
-): TypedStorage<S> {
+    options?: CreateTypedStorageOptions<S>,
+) {
+    const existing = registry.get(type);
+    if (existing) {
+        console.warn(`[use-sync-typed-storage] Storage "${type}" already created. Returning existing instance. Call resetTypedStorageRegistry() between tests.`);
+        return existing as { storage: TypedStorage<S>; useStorageItem: ReturnType<typeof createStorageHook<S>> };
+    }
+
     type Key = StorageKey<S>;
     type Value<K extends Key> = S[K];
 
@@ -69,15 +82,15 @@ export function createTypedStorage<S extends TypedStorageValue>(
         key: K,
         options?: GetOptions<Value<K>> | GetOptionsWithDefault<Value<K>>,
     ): Value<K> | null {
-        const storage = getStorage();
+        const nativeStorage = getStorage();
         const defaultValue = (options as GetOptionsWithDefault<Value<K>> | undefined)?.defaultValue;
 
-        if (!storage) {
+        if (!nativeStorage) {
             return defaultValue ?? null;
         }
 
         try {
-            const raw = storage.getItem(key);
+            const raw = nativeStorage.getItem(key);
             const cachedValue = getCachedValue(key, raw);
 
             if (cachedValue !== undefined) {
@@ -110,9 +123,9 @@ export function createTypedStorage<S extends TypedStorageValue>(
         value: Value<K>,
         options?: SetOptions<Value<K>>,
     ): Value<K> | null {
-        const storage = getStorage();
+        const nativeStorage = getStorage();
 
-        if (!storage) {
+        if (!nativeStorage) {
             return null;
         }
 
@@ -121,7 +134,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
             const valueToSave = validator ? validator(value as unknown) : value;
             const raw = JSON.stringify(valueToSave);
 
-            storage.setItem(key, raw);
+            nativeStorage.setItem(key, raw);
             cache.set(key, {raw, parsed: valueToSave});
             dispatchStorageEvent(getCustomEventName(key));
 
@@ -133,25 +146,25 @@ export function createTypedStorage<S extends TypedStorageValue>(
     }
 
     function remove(key: Key): void {
-        const storage = getStorage();
+        const nativeStorage = getStorage();
 
-        storage?.removeItem(key);
+        nativeStorage?.removeItem(key);
         cache.delete(key);
         dispatchStorageEvent(getCustomEventName(key));
     }
 
     function clear(): void {
-        const storage = getStorage();
+        const nativeStorage = getStorage();
 
-        storage?.clear();
+        nativeStorage?.clear();
         cache.clear();
         dispatchStorageEvent(CLEAR_STORAGE_EVENT);
     }
 
-    return {
-        get,
-        set,
-        remove,
-        clear,
-    };
+    const storage: TypedStorage<S> = { get, set, remove, clear };
+    const useStorageItem = createStorageHook<S>(storage);
+    const entry = { storage, useStorageItem };
+    registry.set(type, entry);
+
+    return entry;
 }
