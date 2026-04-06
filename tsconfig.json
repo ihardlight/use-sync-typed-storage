@@ -23,9 +23,7 @@
     "sourceMap": true,
     "inlineSources": false,
 
-    "noEmit": true,
-
-    "baseUrl": "."
+    "noEmit": true
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "**/*.test.*", "**/*.spec.*", "**/__tests__/**"]
