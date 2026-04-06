@@ -1,8 +1,8 @@
 /**
  * @vitest-environment node
  */
-import {beforeEach, describe, expect, it} from 'vitest';
-import {createTypedStorage, resetTypedStorageRegistry} from './typedStorage.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
 
 describe('SSR Compatibility (Node Environment)', () => {
     beforeEach(() => {
@@ -15,7 +15,7 @@ describe('SSR Compatibility (Node Environment)', () => {
 
     it('should return defaultValue during SSR', () => {
         const { storage } = createTypedStorage<{ count: number }>();
-        const val = storage.get('count', {defaultValue: 10});
+        const val = storage.get('count', { defaultValue: 10 });
 
         expect(val).toBe(10);
     });

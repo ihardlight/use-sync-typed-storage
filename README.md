@@ -34,6 +34,7 @@ yarn add use-sync-typed-storage
 ```bash
 pnpm add use-sync-external-store
 ```
+
 ## Quick Start
 
 ### 1. Define your storage schema
@@ -48,7 +49,7 @@ type MyStorageSchema = {
     theme: 'light' | 'dark';
     notifications: boolean;
     user: { id: number; name: string } | null;
-}
+};
 
 export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('localStorage');
 ```
@@ -61,11 +62,7 @@ import { useStorageItem } from './storage';
 function ThemeToggle() {
     const { value, set } = useStorageItem('theme', { defaultValue: 'light' });
 
-    return (
-        <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>
-            Current mode: {value}
-        </button>
-    );
+    return <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>Current mode: {value}</button>;
 }
 ```
 
@@ -83,7 +80,7 @@ const UserSchema = z.object({ id: z.number(), name: z.string() });
 
 const { value } = useStorageItem('user', {
     validate: (data) => UserSchema.parse(data),
-    defaultValue: null
+    defaultValue: null,
 });
 ```
 
@@ -96,7 +93,7 @@ export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('
     validate: (key) => (value) => {
         if (key === 'theme' && value !== 'light' && value !== 'dark') return 'light';
         return value;
-    }
+    },
 });
 ```
 
@@ -130,6 +127,7 @@ Returns `{ storage, useStorageItem }`. Singleton per storage type — calling it
 #### `storage`
 
 Direct access to storage, usable outside React components:
+
 - `storage.get(key, options?)`
 - `storage.set(key, value, options?)`
 - `storage.remove(key)`
@@ -138,6 +136,7 @@ Direct access to storage, usable outside React components:
 #### `useStorageItem(key, options?)`
 
 React hook to subscribe to a specific key.
+
 - `options.defaultValue`: Value returned when the key is absent.
 - `options.validate`: Per-call validator/transformer function.
 
@@ -154,4 +153,3 @@ beforeEach(() => {
     resetTypedStorageRegistry();
 });
 ```
-

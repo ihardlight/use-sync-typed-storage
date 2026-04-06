@@ -1,4 +1,4 @@
-import {
+import type {
     GetOptions,
     GetOptionsWithDefault,
     SetOptions,
@@ -8,8 +8,8 @@ import {
     TypedStorage,
     TypedStorageValue,
 } from './types.js';
-import {CLEAR_STORAGE_EVENT, getCustomEventName} from './utils.js';
-import {createStorageHook} from './use-typed-storage-item.js';
+import { CLEAR_STORAGE_EVENT, getCustomEventName } from './utils.js';
+import { createStorageHook } from './use-typed-storage-item.js';
 
 interface CacheEntry<T> {
     raw: string | null;
@@ -28,11 +28,13 @@ export function resetTypedStorageRegistry(): void {
 
 export function createTypedStorage<S extends TypedStorageValue>(
     type: StorageType = 'localStorage',
-    options?: CreateTypedStorageOptions<S>,
+    config?: CreateTypedStorageOptions<S>,
 ) {
     const existing = registry.get(type);
     if (existing) {
-        console.warn(`[use-sync-typed-storage] Storage "${type}" already created. Returning existing instance. Call resetTypedStorageRegistry() between tests.`);
+        console.warn(
+            `[use-sync-typed-storage] Storage "${type}" already created. Returning existing instance. Call resetTypedStorageRegistry() between tests.`,
+        );
         return existing as { storage: TypedStorage<S>; useStorageItem: ReturnType<typeof createStorageHook<S>> };
     }
 
@@ -41,7 +43,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
 
     const isClient = typeof window !== 'undefined';
     const cache = new Map<string, CacheEntry<unknown>>();
-    const storageOptions = options ?? {};
+    const storageOptions = config ?? {};
 
     const getStorage = (): Storage | null => {
         if (!isClient) {
@@ -51,7 +53,10 @@ export function createTypedStorage<S extends TypedStorageValue>(
         return type === 'localStorage' ? window.localStorage : window.sessionStorage;
     };
 
-    const getValidator = <K extends Key>(key: K, options?: GetOptions<Value<K>>): StorageValidator<Value<K>> | undefined => {
+    const getValidator = <K extends Key>(
+        key: K,
+        options?: GetOptions<Value<K>>,
+    ): StorageValidator<Value<K>> | undefined => {
         return options?.validate ?? storageOptions.validate?.(key);
     };
 
@@ -63,10 +68,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
         return undefined;
     };
 
-    const parseAndValidate = <K extends Key>(
-        raw: string,
-        validator?: StorageValidator<Value<K>>,
-    ): Value<K> => {
+    const parseAndValidate = <K extends Key>(raw: string, validator?: StorageValidator<Value<K>>): Value<K> => {
         let parsed: unknown = JSON.parse(raw);
 
         if (validator && parsed !== null) {
@@ -104,7 +106,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
             const validator = getValidator(key, options);
             const parsed = parseAndValidate(raw, validator);
 
-            cache.set(key, {raw, parsed});
+            cache.set(key, { raw, parsed });
             return parsed;
         } catch (error) {
             console.warn(`[${type}] Invalid data for key "${key}":`, error);
@@ -118,11 +120,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
         }
     };
 
-    function set<K extends Key>(
-        key: K,
-        value: Value<K>,
-        options?: SetOptions<Value<K>>,
-    ): Value<K> | null {
+    function set<K extends Key>(key: K, value: Value<K>, options?: SetOptions<Value<K>>): Value<K> | null {
         const nativeStorage = getStorage();
 
         if (!nativeStorage) {
@@ -135,7 +133,7 @@ export function createTypedStorage<S extends TypedStorageValue>(
             const raw = JSON.stringify(valueToSave);
 
             nativeStorage.setItem(key, raw);
-            cache.set(key, {raw, parsed: valueToSave});
+            cache.set(key, { raw, parsed: valueToSave });
             dispatchStorageEvent(getCustomEventName(key));
 
             return valueToSave;

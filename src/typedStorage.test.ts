@@ -1,12 +1,12 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {createTypedStorage, resetTypedStorageRegistry} from './typedStorage.js';
-import {CLEAR_STORAGE_EVENT, getCustomEventName} from './utils.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
+import { CLEAR_STORAGE_EVENT, getCustomEventName } from './utils.js';
 
 type TestSchema = {
     user: { id: number; name: string };
     settings: { theme: 'light' | 'dark' };
     count: number;
-}
+};
 
 describe('createTypedStorage', () => {
     beforeEach(() => {
@@ -19,7 +19,7 @@ describe('createTypedStorage', () => {
     describe('Basic Operations', () => {
         it('should correctly set and get values', () => {
             const { storage } = createTypedStorage<TestSchema>('localStorage');
-            const user = {id: 1, name: 'John'};
+            const user = { id: 1, name: 'John' };
 
             storage.set('user', user);
             expect(storage.get('user')).toEqual(user);
@@ -28,7 +28,7 @@ describe('createTypedStorage', () => {
 
         it('should return defaultValue if key is missing', () => {
             const { storage } = createTypedStorage<TestSchema>();
-            expect(storage.get('count', {defaultValue: 42})).toBe(42);
+            expect(storage.get('count', { defaultValue: 42 })).toBe(42);
         });
 
         it('should remove items from storage and cache', () => {
@@ -43,7 +43,7 @@ describe('createTypedStorage', () => {
         it('should clear all items', () => {
             const { storage } = createTypedStorage<TestSchema>();
             storage.set('count', 1);
-            storage.set('settings', {theme: 'dark'});
+            storage.set('settings', { theme: 'dark' });
 
             storage.clear();
 
@@ -55,7 +55,7 @@ describe('createTypedStorage', () => {
     describe('Caching & Referential Integrity', () => {
         it('should return the same object reference from cache', () => {
             const { storage } = createTypedStorage<TestSchema>();
-            const user = {id: 1, name: 'Alice'};
+            const user = { id: 1, name: 'Alice' };
 
             storage.set('user', user);
 
@@ -84,12 +84,11 @@ describe('createTypedStorage', () => {
                 return val;
             };
 
-            const result = storage.set('count', 5, {validate});
+            const result = storage.set('count', 5, { validate });
             expect(result).toBe(5);
 
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-            });
-            const invalidResult = storage.set('count', -1, {validate});
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(vi.fn());
+            const invalidResult = storage.set('count', -1, { validate });
 
             expect(invalidResult).toBeNull();
             expect(consoleSpy).toHaveBeenCalled();
@@ -97,15 +96,15 @@ describe('createTypedStorage', () => {
 
         it('should validate and sanitize data on get', () => {
             const { storage } = createTypedStorage<TestSchema>();
-            localStorage.setItem('settings', JSON.stringify({theme: 'invalid'}));
+            localStorage.setItem('settings', JSON.stringify({ theme: 'invalid' }));
 
             const validate = (val: any) => {
-                if (val.theme !== 'light' && val.theme !== 'dark') return {theme: 'light'};
+                if (val.theme !== 'light' && val.theme !== 'dark') return { theme: 'light' };
                 return val;
             };
 
-            const result = storage.get('settings', {validate});
-            expect(result).toEqual({theme: 'light'});
+            const result = storage.get('settings', { validate });
+            expect(result).toEqual({ theme: 'light' });
         });
 
         it('should validate data with global validator', () => {
@@ -119,8 +118,7 @@ describe('createTypedStorage', () => {
             const result = storage.set('count', 5);
             expect(result).toBe(5);
 
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-            });
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(vi.fn());
             const invalidResult = storage.set('count', -1);
 
             expect(invalidResult).toBeNull();
@@ -135,9 +133,7 @@ describe('createTypedStorage', () => {
 
             storage.set('count', 100);
 
-            expect(dispatchSpy).toHaveBeenCalledWith(
-                expect.objectContaining({type: getCustomEventName('count')}),
-            );
+            expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: getCustomEventName('count') }));
         });
 
         it('should dispatch CLEAR_STORAGE_EVENT on clear', () => {
@@ -146,9 +142,7 @@ describe('createTypedStorage', () => {
 
             storage.clear();
 
-            expect(dispatchSpy).toHaveBeenCalledWith(
-                expect.objectContaining({type: CLEAR_STORAGE_EVENT}),
-            );
+            expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: CLEAR_STORAGE_EVENT }));
         });
     });
 
@@ -156,10 +150,9 @@ describe('createTypedStorage', () => {
         it('should return defaultValue and warn on invalid JSON', () => {
             localStorage.setItem('count', 'invalid-json-{');
             const { storage } = createTypedStorage<TestSchema>();
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
-            });
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(vi.fn());
 
-            const result = storage.get('count', {defaultValue: 0});
+            const result = storage.get('count', { defaultValue: 0 });
 
             expect(result).toBe(0);
             expect(consoleSpy).toHaveBeenCalled();

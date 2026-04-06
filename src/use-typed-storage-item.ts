@@ -1,16 +1,25 @@
-import {useCallback, useMemo} from 'react';
-import {useSyncExternalStore} from 'use-sync-external-store/shim';
+import { useCallback, useMemo } from 'react';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
-import {GetOptions, GetOptionsWithDefault, StorageKey, StorageValidator, TypedStorage, TypedStorageValue} from './types.js';
-import {CLEAR_STORAGE_EVENT, getCustomEventName, noop} from './utils.js';
+import type {
+    GetOptions,
+    GetOptionsWithDefault,
+    StorageKey,
+    StorageValidator,
+    TypedStorage,
+    TypedStorageValue,
+} from './types.js';
+import { CLEAR_STORAGE_EVENT, getCustomEventName, noop } from './utils.js';
 
 interface UseTypedStorageItemOptions<S extends TypedStorageValue, K extends StorageKey<S>> {
     storage: TypedStorage<S>;
     validate?: GetOptions<S[K]>['validate'];
 }
 
-interface UseTypedStorageItemOptionsWithDefault<S extends TypedStorageValue, K extends StorageKey<S>>
-    extends UseTypedStorageItemOptions<S, K> {
+interface UseTypedStorageItemOptionsWithDefault<
+    S extends TypedStorageValue,
+    K extends StorageKey<S>,
+> extends UseTypedStorageItemOptions<S, K> {
     defaultValue: S[K];
 }
 
@@ -34,7 +43,7 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
     key: K,
     options: UseTypedStorageItemOptions<S, K> | UseTypedStorageItemOptionsWithDefault<S, K>,
 ) {
-    const {storage, validate} = options;
+    const { storage, validate } = options;
     const defaultValue = (options as UseTypedStorageItemOptionsWithDefault<S, K>).defaultValue;
 
     const isClient = typeof window !== 'undefined';
@@ -66,9 +75,10 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
     );
 
     const getSnapshot = useCallback((): S[K] | null => {
-        const getOptions = defaultValue !== undefined
-            ? ({defaultValue, validate} as GetOptionsWithDefault<S[K]>)
-            : ({validate} as GetOptions<S[K]>);
+        const getOptions =
+            defaultValue !== undefined
+                ? ({ defaultValue, validate } as GetOptionsWithDefault<S[K]>)
+                : ({ validate } as GetOptions<S[K]>);
 
         return storage.get(key, getOptions);
     }, [key, storage, defaultValue, validate]);
@@ -81,7 +91,7 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
 
     const set = useCallback(
         (val: S[K]): S[K] | null => {
-            return storage.set(key, val, {validate});
+            return storage.set(key, val, { validate });
         },
         [key, storage, validate],
     );
@@ -90,7 +100,7 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
         storage.remove(key);
     }, [key, storage]);
 
-    return useMemo(() => ({value, set, remove}), [value, set, remove]);
+    return useMemo(() => ({ value, set, remove }), [value, set, remove]);
 }
 
 export type StorageItemResult<T, D extends T | undefined> = D extends T

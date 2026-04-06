@@ -1,6 +1,6 @@
-import {act} from '@testing-library/react';
-import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {createTypedStorage, resetTypedStorageRegistry} from './typedStorage.js';
+import { act } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
 
 let renderHook: any;
 
@@ -21,7 +21,7 @@ type Schema = {
     theme: 'light' | 'dark';
     count: number;
     user: { name: string };
-}
+};
 
 describe('useTypedStorageItem', () => {
     let storage: ReturnType<typeof createTypedStorage<Schema>>['storage'];
@@ -37,19 +37,14 @@ describe('useTypedStorageItem', () => {
         useStorageItem = result.useStorageItem;
     });
 
-
     it('should return default value initially', () => {
-        const {result} = renderHook(() =>
-            useStorageItem('theme', {defaultValue: 'light'}),
-        );
+        const { result } = renderHook(() => useStorageItem('theme', { defaultValue: 'light' }));
 
         expect(result.current.value).toBe('light');
     });
 
     it('should update value when set is called', () => {
-        const {result} = renderHook(() =>
-            useStorageItem('count', {defaultValue: 0}),
-        );
+        const { result } = renderHook(() => useStorageItem('count', { defaultValue: 0 }));
 
         act(() => {
             result.current.set(10);
@@ -61,7 +56,7 @@ describe('useTypedStorageItem', () => {
 
     it('should update value when remove is called', () => {
         storage.set('theme', 'dark');
-        const {result} = renderHook(() => useStorageItem('theme'));
+        const { result } = renderHook(() => useStorageItem('theme'));
 
         expect(result.current.value).toBe('dark');
 
@@ -74,26 +69,24 @@ describe('useTypedStorageItem', () => {
 
     describe('Reactivity & Sync', () => {
         it('should react to external storage events (cross-tab sync)', () => {
-            const {result} = renderHook(() =>
-                useStorageItem('theme', {defaultValue: 'light'}),
-            );
+            const { result } = renderHook(() => useStorageItem('theme', { defaultValue: 'light' }));
 
             act(() => {
                 localStorage.setItem('theme', JSON.stringify('dark'));
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'theme',
-                    newValue: JSON.stringify('dark'),
-                    storageArea: localStorage,
-                }));
+                window.dispatchEvent(
+                    new StorageEvent('storage', {
+                        key: 'theme',
+                        newValue: JSON.stringify('dark'),
+                        storageArea: localStorage,
+                    }),
+                );
             });
 
             expect(result.current.value).toBe('dark');
         });
 
         it('should react to direct storage.set calls (local sync)', () => {
-            const {result} = renderHook(() =>
-                useStorageItem('count', {defaultValue: 0}),
-            );
+            const { result } = renderHook(() => useStorageItem('count', { defaultValue: 0 }));
 
             act(() => {
                 storage.set('count', 99);
@@ -104,7 +97,7 @@ describe('useTypedStorageItem', () => {
 
         it('should react to CLEAR_STORAGE_EVENT', () => {
             storage.set('theme', 'dark');
-            const {result} = renderHook(() => useStorageItem('theme'));
+            const { result } = renderHook(() => useStorageItem('theme'));
 
             act(() => {
                 storage.clear();
@@ -117,9 +110,7 @@ describe('useTypedStorageItem', () => {
     describe('Validation in Hook', () => {
         it('should use validation when setting value', () => {
             const validate = vi.fn((v) => v.toUpperCase());
-            const {result} = renderHook(() =>
-                useStorageItem('theme', {validate}),
-            );
+            const { result } = renderHook(() => useStorageItem('theme', { validate }));
 
             act(() => {
                 result.current.set('dark');
@@ -132,13 +123,11 @@ describe('useTypedStorageItem', () => {
         it('should return defaultValue if stored data is invalid', () => {
             localStorage.setItem('count', JSON.stringify('not-a-number'));
             const validate = (v: any) => {
-                if (typeof v !== 'number') throw new Error();
+                if (typeof v !== 'number') throw new Error('expected number');
                 return v;
             };
 
-            const {result} = renderHook(() =>
-                useStorageItem('count', {defaultValue: 0, validate}),
-            );
+            const { result } = renderHook(() => useStorageItem('count', { defaultValue: 0, validate }));
 
             expect(result.current.value).toBe(0);
         });
@@ -146,9 +135,7 @@ describe('useTypedStorageItem', () => {
 
     describe('Memoization', () => {
         it('should return stable functions (set/remove)', () => {
-            const {result, rerender} = renderHook(() =>
-                useStorageItem('theme'),
-            );
+            const { result, rerender } = renderHook(() => useStorageItem('theme'));
 
             const firstSet = result.current.set;
             const firstRemove = result.current.remove;
