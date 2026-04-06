@@ -44,7 +44,7 @@ jobs:
           pnpm add react@${{ matrix.react-version }} react-dom@${{ matrix.react-version }} @testing-library/react@${{ matrix.rtl-version }} -D --ignore-scripts
 
       - name: Run Tests
-        run: pnpm test:run
+        run: pnpm test
 
   lint-and-build:
     runs-on: ubuntu-latest

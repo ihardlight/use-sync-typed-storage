@@ -37,8 +37,7 @@
         "build": "tsup",
         "prepublishOnly": "pnpm build",
         "tsc": "tsc",
-        "test": "vitest",
-        "test:run": "vitest run",
+        "test": "vitest run",
         "test:ui": "vitest --ui"
     },
     "peerDependencies": {
