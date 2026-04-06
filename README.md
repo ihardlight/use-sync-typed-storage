@@ -46,9 +46,9 @@ Create a central storage file once. `createTypedStorage` is a singleton — call
 import { createTypedStorage } from 'use-sync-typed-storage';
 
 type MyStorageSchema = {
-    theme: 'light' | 'dark';
-    notifications: boolean;
-    user: { id: number; name: string } | null;
+  theme: 'light' | 'dark';
+  notifications: boolean;
+  user: { id: number; name: string } | null;
 };
 
 export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('localStorage');
@@ -60,9 +60,9 @@ export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('
 import { useStorageItem } from './storage';
 
 function ThemeToggle() {
-    const { value, set } = useStorageItem('theme', { defaultValue: 'light' });
+  const { value, set } = useStorageItem('theme', { defaultValue: 'light' });
 
-    return <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>Current mode: {value}</button>;
+  return <button onClick={() => set(value === 'light' ? 'dark' : 'light')}>Current mode: {value}</button>;
 }
 ```
 
@@ -79,8 +79,8 @@ import { useStorageItem } from './storage';
 const UserSchema = z.object({ id: z.number(), name: z.string() });
 
 const { value } = useStorageItem('user', {
-    validate: (data) => UserSchema.parse(data),
-    defaultValue: null,
+  validate: (data) => UserSchema.parse(data),
+  defaultValue: null,
 });
 ```
 
@@ -90,10 +90,10 @@ You can define validators for all keys centrally at creation time:
 
 ```typescript
 export const { storage, useStorageItem } = createTypedStorage<MyStorageSchema>('localStorage', {
-    validate: (key) => (value) => {
-        if (key === 'theme' && value !== 'light' && value !== 'dark') return 'light';
-        return value;
-    },
+  validate: (key) => (value) => {
+    if (key === 'theme' && value !== 'light' && value !== 'dark') return 'light';
+    return value;
+  },
 });
 ```
 
@@ -150,6 +150,6 @@ Clears the singleton registry. Intended for use in tests only.
 import { resetTypedStorageRegistry } from 'use-sync-typed-storage';
 
 beforeEach(() => {
-    resetTypedStorageRegistry();
+  resetTypedStorageRegistry();
 });
 ```
