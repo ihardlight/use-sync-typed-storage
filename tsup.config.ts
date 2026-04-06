@@ -5,5 +5,5 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', 'use-sync-external-store'],
+  external: ['react', 'react-dom'],
 });

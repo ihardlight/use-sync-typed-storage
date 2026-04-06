@@ -10,7 +10,7 @@ jobs:
   test-matrix:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Чтобы ошибка в одной версии не отменяла остальные тесты
+      fail-fast: false
       matrix:
         include:
           - react-version: 16.8.6
@@ -31,7 +31,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24.14.1
           cache: 'pnpm'
 
       - name: Install Dependencies

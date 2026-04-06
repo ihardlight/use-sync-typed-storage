@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
+import { createTypedStorage, resetTypedStorageRegistry } from '../typedStorage.js';
 
 let renderHook: any;
 

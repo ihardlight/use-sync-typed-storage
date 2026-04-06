@@ -121,6 +121,8 @@ export default defineConfig({
         'eslint/init-declarations': 'off',
         // any in test validators is acceptable — narrowing to unknown adds noise without safety benefit in tests
         'typescript/no-explicit-any': 'off',
+        // Tests in subdirectories (e.g. src/__test__/) must import from parent — this is expected
+        'import/no-relative-parent-imports': 'off',
       },
     },
     {

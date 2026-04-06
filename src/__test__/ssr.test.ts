@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
+import { createTypedStorage, resetTypedStorageRegistry } from '../typedStorage.js';
 
 describe('SSR Compatibility (Node Environment)', () => {
   beforeEach(() => {

@@ -29,12 +29,6 @@ npm install use-sync-typed-storage
 yarn add use-sync-typed-storage
 ```
 
-**React 16 / 17 only:** `useSyncExternalStore` is built into React 18+. If you are on an older version, install the official shim as well:
-
-```bash
-pnpm add use-sync-external-store
-```
-
 ## Quick Start
 
 ### 1. Define your storage schema

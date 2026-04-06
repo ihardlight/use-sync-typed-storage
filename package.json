@@ -38,11 +38,13 @@
     "prepublishOnly": "pnpm build",
     "tsc": "tsc",
     "test": "vitest run",
-    "test:ui": "vitest --ui",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"
+  },
+  "dependencies": {
+    "use-sync-external-store": "^1.6.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
@@ -61,13 +63,7 @@
   },
   "peerDependencies": {
     "react": ">=16.8",
-    "react-dom": ">=16.8",
-    "use-sync-external-store": "^1.0.0"
-  },
-  "peerDependenciesMeta": {
-    "use-sync-external-store": {
-      "optional": true
-    }
+    "react-dom": ">=16.8"
   },
   "engines": {
     "node": ">=24.14.1"

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTypedStorage, resetTypedStorageRegistry } from './typedStorage.js';
-import { CLEAR_STORAGE_EVENT, getCustomEventName } from './utils.js';
+import { createTypedStorage, resetTypedStorageRegistry } from '../typedStorage.js';
+import { CLEAR_STORAGE_EVENT, getCustomEventName } from '../utils.js';
 
 type TestSchema = {
   user: { id: number; name: string };
