@@ -16,7 +16,7 @@ describe('createTypedStorage', () => {
     resetTypedStorageRegistry();
   });
 
-  describe('Basic Operations', () => {
+  describe('basic Operations', () => {
     it('should correctly set and get values', () => {
       const { storage } = createTypedStorage<TestSchema>('localStorage');
       const user = { id: 1, name: 'John' };
@@ -52,7 +52,7 @@ describe('createTypedStorage', () => {
     });
   });
 
-  describe('Caching & Referential Integrity', () => {
+  describe('caching & Referential Integrity', () => {
     it('should return the same object reference from cache', () => {
       const { storage } = createTypedStorage<TestSchema>();
       const user = { id: 1, name: 'Alice' };
@@ -76,7 +76,7 @@ describe('createTypedStorage', () => {
     });
   });
 
-  describe('Validation', () => {
+  describe('validation', () => {
     it('should validate data on set', () => {
       const { storage } = createTypedStorage<TestSchema>();
       const validate = (val: any) => {
@@ -91,7 +91,7 @@ describe('createTypedStorage', () => {
       const invalidResult = storage.set('count', -1, { validate });
 
       expect(invalidResult).toBeNull();
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith();
     });
 
     it('should validate and sanitize data on get', () => {
@@ -122,11 +122,11 @@ describe('createTypedStorage', () => {
       const invalidResult = storage.set('count', -1);
 
       expect(invalidResult).toBeNull();
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith();
     });
   });
 
-  describe('Events', () => {
+  describe('events', () => {
     it('should dispatch custom event on set', () => {
       const { storage } = createTypedStorage<TestSchema>();
       const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
@@ -148,7 +148,7 @@ describe('createTypedStorage', () => {
     });
   });
 
-  describe('Error Handling', () => {
+  describe('error Handling', () => {
     it('should return defaultValue and warn on invalid JSON', () => {
       localStorage.setItem('count', 'invalid-json-{');
       const { storage } = createTypedStorage<TestSchema>();
@@ -157,7 +157,7 @@ describe('createTypedStorage', () => {
       const result = storage.get('count', { defaultValue: 0 });
 
       expect(result).toBe(0);
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith();
     });
   });
 });

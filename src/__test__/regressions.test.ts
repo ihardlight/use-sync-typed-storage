@@ -91,7 +91,7 @@ describe('regressions', () => {
 
     storage.clear();
 
-    expect(localStorage.length).toBe(0);
+    expect(localStorage).toHaveLength(0);
   });
 
   it('clear() does not throw when the native clear() throws', () => {
@@ -120,7 +120,7 @@ describe('regressions', () => {
     const second = createTypedStorage<Schema>('localStorage', { validate: () => (() => 2) as any });
 
     expect(second).toBe(first);
-    expect(console.warn).toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith();
     expect(first.storage.set('count', 0)).toBe(1);
   });
 

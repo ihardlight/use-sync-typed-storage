@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createTypedStorage, resetTypedStorageRegistry } from '../typedStorage.js';
 
-describe('SSR Compatibility (Node Environment)', () => {
+describe('sSR Compatibility (Node Environment)', () => {
   beforeEach(() => {
     resetTypedStorageRegistry();
   });

@@ -67,7 +67,7 @@ describe('useTypedStorageItem', () => {
     expect(result.current.value).toBeNull();
   });
 
-  describe('Reactivity & Sync', () => {
+  describe('reactivity & Sync', () => {
     it('should react to external storage events (cross-tab sync)', () => {
       const { result } = renderHook(() => useStorageItem('theme', { defaultValue: 'light' }));
 
@@ -107,7 +107,7 @@ describe('useTypedStorageItem', () => {
     });
   });
 
-  describe('Validation in Hook', () => {
+  describe('validation in Hook', () => {
     it('should use validation when setting value', () => {
       const validate = vi.fn((v) => v.toUpperCase());
       const { result } = renderHook(() => useStorageItem('theme', { validate }));
@@ -117,7 +117,7 @@ describe('useTypedStorageItem', () => {
       });
 
       expect(result.current.value).toBe('DARK');
-      expect(validate).toHaveBeenCalled();
+      expect(validate).toHaveBeenCalledWith();
     });
 
     it('should return defaultValue if stored data is invalid', () => {
@@ -133,7 +133,7 @@ describe('useTypedStorageItem', () => {
     });
   });
 
-  describe('Memoization', () => {
+  describe('memoization', () => {
     it('should return stable functions (set/remove)', () => {
       const { result, rerender } = renderHook(() => useStorageItem('theme'));
 

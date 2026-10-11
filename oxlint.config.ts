@@ -45,6 +45,9 @@ export default defineConfig({
     // Factory functions with many inner helpers can exceed the default
     'eslint/max-statements': ['warn', { max: 30 }],
 
+    // One declaration per statement is clearer than combined `const a = ..., b = ...`
+    'eslint/one-var': 'off',
+
     // Ternary operators are idiomatic and readable TypeScript
     'eslint/no-ternary': 'off',
 

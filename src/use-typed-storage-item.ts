@@ -117,9 +117,9 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
 
   const getSnapshot = useCallback((): S[K] | null => {
     const getOptions =
-      defaultValue !== undefined
-        ? ({ defaultValue, validate } as GetOptionsWithDefault<S[K]>)
-        : ({ validate } as GetOptions<S[K]>);
+      defaultValue === undefined
+        ? ({ validate } as GetOptions<S[K]>)
+        : ({ defaultValue, validate } as GetOptionsWithDefault<S[K]>);
 
     return storage.get(key, getOptions);
   }, [key, storage, defaultValue, validate]);
