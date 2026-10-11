@@ -1,6 +1,8 @@
-import { useCallback, useMemo } from 'react';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
+// oxlint-disable-next-line import/no-namespace -- needed to probe for `useSyncExternalStore` without a static import
+import * as React from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
 
+import { noop } from './utils.js';
 import type {
   GetOptions,
   GetOptionsWithDefault,
@@ -9,7 +11,63 @@ import type {
   TypedStorage,
   TypedStorageValue,
 } from './types.js';
-import { CLEAR_STORAGE_EVENT, getCustomEventName, noop } from './utils.js';
+
+type UseSyncExternalStore = <T>(
+  subscribe: (callback: () => void) => () => void,
+  getSnapshot: () => T,
+  getServerSnapshot: () => T,
+) => T;
+
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+/** Minimal fallback for React 16/17, which lack `useSyncExternalStore`. */
+const useSyncExternalStoreFallback: UseSyncExternalStore = (subscribe, getSnapshot, getServerSnapshot) => {
+  const value = typeof window === 'undefined' ? getServerSnapshot() : getSnapshot();
+  const latest = useRef({ value, getSnapshot });
+  const [, forceUpdate] = useReducer((tick: boolean) => !tick, false);
+
+  useIsomorphicLayoutEffect(() => {
+    latest.current = { value, getSnapshot };
+    if (!Object.is(value, getSnapshot())) {
+      forceUpdate();
+    }
+  }, [value, getSnapshot]);
+
+  useEffect(() => {
+    const check = () => {
+      if (!Object.is(latest.current.value, latest.current.getSnapshot())) {
+        forceUpdate();
+      }
+    };
+    check();
+    return subscribe(check);
+  }, [subscribe]);
+
+  return value;
+};
+
+// Looked up by a computed name so bundlers don't flag a missing export on React 16/17.
+const builtinName = 'useSyncExternalStore';
+const useSyncExternalStore: UseSyncExternalStore =
+  (React as unknown as Record<string, UseSyncExternalStore | undefined>)[builtinName] ?? useSyncExternalStoreFallback;
+
+/** Subscription for `TypedStorage` implementations without `subscribe`: native cross-tab events only. */
+function subscribeToStorageEvents(key: string, callback: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return noop;
+  }
+
+  const handleStorageEvent = (event: StorageEvent): void => {
+    if (event.key === key || event.key === null) {
+      callback();
+    }
+  };
+
+  window.addEventListener('storage', handleStorageEvent);
+  return () => {
+    window.removeEventListener('storage', handleStorageEvent);
+  };
+}
 
 interface UseTypedStorageItemOptions<S extends TypedStorageValue, K extends StorageKey<S>> {
   storage: TypedStorage<S>;
@@ -46,32 +104,15 @@ export function useTypedStorageItem<S extends TypedStorageValue, K extends Stora
   const { storage, validate } = options;
   const defaultValue = (options as UseTypedStorageItemOptionsWithDefault<S, K>).defaultValue;
 
-  const isClient = typeof window !== 'undefined';
-  const customEventName = getCustomEventName(key);
-
   const subscribe = useCallback(
     (callback: () => void) => {
-      if (!isClient) {
-        return noop;
+      if (storage.subscribe) {
+        return storage.subscribe(key, callback);
       }
 
-      const handleStorageEvent = (event: StorageEvent): void => {
-        if (event.key === key || event.key === null) {
-          callback();
-        }
-      };
-
-      window.addEventListener('storage', handleStorageEvent);
-      window.addEventListener(customEventName, callback);
-      window.addEventListener(CLEAR_STORAGE_EVENT, callback);
-
-      return () => {
-        window.removeEventListener('storage', handleStorageEvent);
-        window.removeEventListener(customEventName, callback);
-        window.removeEventListener(CLEAR_STORAGE_EVENT, callback);
-      };
+      return subscribeToStorageEvents(key, callback);
     },
-    [key, customEventName, isClient],
+    [key, storage],
   );
 
   const getSnapshot = useCallback((): S[K] | null => {

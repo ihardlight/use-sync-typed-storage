@@ -6,21 +6,25 @@ import type {
   StorageType,
   StorageValidator,
   TypedStorage,
+  TypedStorageError,
   TypedStorageValue,
 } from './types.js';
-import { CLEAR_STORAGE_EVENT, getCustomEventName } from './utils.js';
+import { INVALID, createNativeAccess, createSubscribe, createValueReader, defaultOnError } from './backend.js';
+import { getClearEventName, getKeyEventName } from './utils.js';
 import { createStorageHook } from './use-typed-storage-item.js';
-
-interface CacheEntry<T> {
-  raw: string | null;
-  parsed: T;
-}
 
 export interface CreateTypedStorageOptions<S extends TypedStorageValue> {
   validate?: <K extends keyof S>(key: K) => StorageValidator<S[K]>;
+  /** Called on storage errors. Defaults to logging with `console.warn` / `console.error`. */
+  onError?: (error: TypedStorageError) => void;
 }
 
-const registry = new Map<string, unknown>();
+export interface TypedStorageInstance<S extends TypedStorageValue> {
+  storage: TypedStorage<S>;
+  useStorageItem: ReturnType<typeof createStorageHook<S>>;
+}
+
+const registry = new Map<StorageType, unknown>();
 
 export function resetTypedStorageRegistry(): void {
   registry.clear();
@@ -30,139 +34,102 @@ export function createTypedStorage<S extends TypedStorageValue>(
   type: StorageType = 'localStorage',
   config?: CreateTypedStorageOptions<S>,
 ) {
+  type Key = StorageKey<S>;
+  type Value<K extends Key> = S[K];
+
   const existing = registry.get(type);
   if (existing) {
     console.warn(
       `[use-sync-typed-storage] Storage "${type}" already created. Returning existing instance. Call resetTypedStorageRegistry() between tests.`,
     );
-    return existing as { storage: TypedStorage<S>; useStorageItem: ReturnType<typeof createStorageHook<S>> };
+    return existing as TypedStorageInstance<S>;
   }
-
-  type Key = StorageKey<S>;
-  type Value<K extends Key> = S[K];
 
   const isClient = typeof window !== 'undefined';
-  const cache = new Map<string, CacheEntry<unknown>>();
-  const storageOptions = config ?? {};
+  const options = config ?? {};
 
-  const getStorage = (): Storage | null => {
-    if (!isClient) {
-      return null;
-    }
-
-    return type === 'localStorage' ? window.localStorage : window.sessionStorage;
+  const report = (error: Omit<TypedStorageError, 'storageType'>): void => {
+    (options.onError ?? defaultOnError)({ ...error, storageType: type });
   };
 
-  const getValidator = <K extends Key>(
-    key: K,
-    options?: GetOptions<Value<K>>,
-  ): StorageValidator<Value<K>> | undefined => {
-    return options?.validate ?? storageOptions.validate?.(key);
-  };
+  const native = createNativeAccess(type, report);
+  const reader = createValueReader(native, report);
 
-  const getCachedValue = <K extends Key>(key: K, raw: string | null): Value<K> | undefined => {
-    const cached = cache.get(key);
-    if (cached && cached.raw === raw) {
-      return cached.parsed as Value<K>;
-    }
-    return undefined;
-  };
+  const resolveValidator = (key: Key, validate: StorageValidator<unknown> | undefined) =>
+    validate ?? (options.validate?.(key) as StorageValidator<unknown> | undefined);
 
-  const parseAndValidate = <K extends Key>(raw: string, validator?: StorageValidator<Value<K>>): Value<K> => {
-    let parsed: unknown = JSON.parse(raw);
-
-    if (validator && parsed !== null) {
-      parsed = validator(parsed);
-    }
-
-    return parsed as Value<K>;
-  };
-
-  function get<K extends Key>(key: K, options?: GetOptions<Value<K>>): Value<K> | null;
-  function get<K extends Key>(key: K, options: GetOptionsWithDefault<Value<K>>): Value<K>;
-  function get<K extends Key>(
-    key: K,
-    options?: GetOptions<Value<K>> | GetOptionsWithDefault<Value<K>>,
-  ): Value<K> | null {
-    const nativeStorage = getStorage();
-    const defaultValue = (options as GetOptionsWithDefault<Value<K>> | undefined)?.defaultValue;
-
-    if (!nativeStorage) {
-      return defaultValue ?? null;
-    }
-
-    try {
-      const raw = nativeStorage.getItem(key);
-      const cachedValue = getCachedValue(key, raw);
-
-      if (cachedValue !== undefined) {
-        return cachedValue;
-      }
-
-      if (!raw) {
-        return defaultValue ?? null;
-      }
-
-      const validator = getValidator(key, options);
-      const parsed = parseAndValidate(raw, validator);
-
-      cache.set(key, { raw, parsed });
-      return parsed;
-    } catch (error) {
-      console.warn(`[${type}] Invalid data for key "${key}":`, error);
-      return defaultValue ?? null;
-    }
-  }
-
-  const dispatchStorageEvent = (eventName: string): void => {
+  const dispatch = (eventName: string): void => {
     if (isClient) {
       window.dispatchEvent(new CustomEvent(eventName));
     }
   };
 
-  function set<K extends Key>(key: K, value: Value<K>, options?: SetOptions<Value<K>>): Value<K> | null {
-    const nativeStorage = getStorage();
+  function get<K extends Key>(key: K, getOptions?: GetOptions<Value<K>>): Value<K> | null;
+  function get<K extends Key>(key: K, getOptions: GetOptionsWithDefault<Value<K>>): Value<K>;
+  function get<K extends Key>(
+    key: K,
+    getOptions?: GetOptions<Value<K>> | GetOptionsWithDefault<Value<K>>,
+  ): Value<K> | null {
+    const fallback = (getOptions as GetOptionsWithDefault<Value<K>> | undefined)?.defaultValue ?? null;
 
-    if (!nativeStorage) {
+    if (!isClient) {
+      return fallback;
+    }
+
+    // Missing and invalid values fall back to the default; a stored `null` is returned as is.
+    const validator = resolveValidator(key, getOptions?.validate as StorageValidator<unknown> | undefined);
+    const value = reader.read(key, validator);
+    return value === INVALID ? fallback : (value as Value<K>);
+  }
+
+  function set<K extends Key>(key: K, value: Value<K>, setOptions?: SetOptions<Value<K>>): Value<K> | null {
+    if (!isClient) {
       return null;
     }
+
+    const validator = resolveValidator(key, setOptions?.validate as StorageValidator<unknown> | undefined);
+    let entry: { raw: string; value: unknown } | null = null;
 
     try {
-      const validator = options?.validate ?? storageOptions.validate?.(key);
-      const valueToSave = validator ? validator(value as unknown) : value;
-      const raw = JSON.stringify(valueToSave);
-
-      nativeStorage.setItem(key, raw);
-      cache.set(key, { raw, parsed: valueToSave });
-      dispatchStorageEvent(getCustomEventName(key));
-
-      return valueToSave;
+      const validated = validator ? validator(value) : value;
+      entry = { raw: JSON.stringify(validated), value: validated };
     } catch (error) {
-      console.error(`[${type}] Failed to save key "${key}":`, error);
+      report({ kind: 'invalid', operation: 'set', key, error });
       return null;
     }
+
+    // A failed native write still lands in memory, so subscribers see it and `set` returns the value.
+    native.write(key, entry.raw, 'set');
+    reader.remember(key, entry);
+    dispatch(getKeyEventName(type, key));
+
+    return entry.value as Value<K>;
   }
 
   function remove(key: Key): void {
-    const nativeStorage = getStorage();
+    if (!isClient) {
+      return;
+    }
 
-    nativeStorage?.removeItem(key);
-    cache.delete(key);
-    dispatchStorageEvent(getCustomEventName(key));
+    native.write(key, null, 'remove');
+    reader.forget(key);
+    dispatch(getKeyEventName(type, key));
   }
 
   function clear(): void {
-    const nativeStorage = getStorage();
+    if (!isClient) {
+      return;
+    }
 
-    nativeStorage?.clear();
-    cache.clear();
-    dispatchStorageEvent(CLEAR_STORAGE_EVENT);
+    native.clear();
+    reader.forget();
+    dispatch(getClearEventName(type));
   }
 
-  const storage: TypedStorage<S> = { get, set, remove, clear };
-  const useStorageItem = createStorageHook<S>(storage);
-  const entry = { storage, useStorageItem };
-  registry.set(type, entry);
+  const storage: TypedStorage<S> = { get, set, remove, clear, subscribe: createSubscribe(type, native) };
+  const instance: TypedStorageInstance<S> = { storage, useStorageItem: createStorageHook<S>(storage) };
 
-  return entry;
+  registry.set(type, instance);
+
+  return instance;
 }

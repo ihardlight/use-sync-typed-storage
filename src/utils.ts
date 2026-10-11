@@ -1,7 +1,11 @@
-export const CLEAR_STORAGE_EVENT = 'clear-storage';
+import type { StorageType } from './types.js';
 
-export function getCustomEventName(key: string) {
-  return `storage-${key}`;
+export function getKeyEventName(type: StorageType, key: string) {
+  return `use-sync-typed-storage:${type}:key:${key}`;
+}
+
+export function getClearEventName(type: StorageType) {
+  return `use-sync-typed-storage:${type}:clear`;
 }
 
 export function noop() {

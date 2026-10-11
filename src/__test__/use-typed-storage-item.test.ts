@@ -95,7 +95,7 @@ describe('useTypedStorageItem', () => {
       expect(result.current.value).toBe(99);
     });
 
-    it('should react to CLEAR_STORAGE_EVENT', () => {
+    it('should react to storage.clear()', () => {
       storage.set('theme', 'dark');
       const { result } = renderHook(() => useStorageItem('theme'));
 

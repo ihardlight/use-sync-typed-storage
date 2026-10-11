@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTypedStorage, resetTypedStorageRegistry } from '../typedStorage.js';
-import { CLEAR_STORAGE_EVENT, getCustomEventName } from '../utils.js';
+import { getClearEventName, getKeyEventName } from '../utils.js';
 
 type TestSchema = {
   user: { id: number; name: string };
@@ -133,16 +133,18 @@ describe('createTypedStorage', () => {
 
       storage.set('count', 100);
 
-      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: getCustomEventName('count') }));
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: getKeyEventName('localStorage', 'count') }),
+      );
     });
 
-    it('should dispatch CLEAR_STORAGE_EVENT on clear', () => {
+    it('should dispatch the clear event on clear', () => {
       const { storage } = createTypedStorage<TestSchema>();
       const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 
       storage.clear();
 
-      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: CLEAR_STORAGE_EVENT }));
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: getClearEventName('localStorage') }));
     });
   });
 
